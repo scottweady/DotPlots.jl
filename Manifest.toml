@@ -1,0 +1,10 @@
+# This file is machine-generated - editing it directly is not advised
+
+julia_version = "1.12.4"
+manifest_format = "2.0"
+project_hash = "50ff8a8645fdc842187e3639b421d3a9de7d6572"
+
+[[deps.DotPlots]]
+path = "."
+uuid = "572fe043-181e-453e-abc3-d66822b83b56"
+version = "0.1.0"

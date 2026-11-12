@@ -1,0 +1,6 @@
+# The examples' environment: DotPlots only (the examples make their curves themselves)
+[deps]
+DotPlots = "572fe043-181e-453e-abc3-d66822b83b56"
+
+[sources]
+DotPlots = {path = ".."}

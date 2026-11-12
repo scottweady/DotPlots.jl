@@ -1,0 +1,13 @@
+name = "DotPlots"
+uuid = "572fe043-181e-453e-abc3-d66822b83b56"
+version = "0.1.0"
+authors = ["Scott Weady <sweady@flatironinstitute.org>"]
+
+[compat]
+julia = "1.10"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
