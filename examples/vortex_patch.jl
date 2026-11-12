@@ -11,4 +11,3 @@ ellipse(φ) = [reim(cis(φ) * complex(a * cos(s), b * sin(s))) for s in range(0,
 t = range(0, π / 2Ω, 5)
 println("Ω = ", Ω, ", a quarter turn by t = ", round(t[end]; sigdigits=4))
 dotplot([[ellipse(Ω * s)] for s in t]; t, maxheight=20, animate=true)
-println()

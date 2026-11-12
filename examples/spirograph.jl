@@ -10,4 +10,3 @@ turns = r ÷ gcd(R, r)                                    # the curve closes aft
 t = range(0, turns, 9)
 pieces = [[[pen(2π * s) for s in range(t[k], t[k+1], 100)]] for k in 1:8]
 dotplot(pieces; t=t[2:end], closed=false, maxheight=24, animate=true)
-println()

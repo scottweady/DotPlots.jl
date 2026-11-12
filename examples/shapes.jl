@@ -15,10 +15,9 @@ shapes = [
 for (name, (x, y)) in shapes
     println(name)
     dotplot(x, y; width=40, maxheight=12)
-    println("\n")
+    println()
 end
 
 circle(x0, y0, ρ) = [(x0 + ρ * cos(s), y0 + ρ * sin(s)) for s in θ]
 println("a disc with two holes")
 dotplot([[circle(0, 0, 1), circle(-0.4, 0.1, 0.3), circle(0.45, -0.2, 0.2)]]; width=40, maxheight=12)
-println()

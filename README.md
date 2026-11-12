@@ -39,18 +39,22 @@ dotplot(frames; t, animate = true)            # played first, over about 2 s
 x = range(0, 1, 100)
 dotplot(x, x .^ 2)                            # one open curve through the points (x[i], y[i])
 dotplot(x .^ 2)                               # against the index, (i, y[i]), filling a 60 × 15 box
+dotplot(x, exp.(10x); yscale = :log)          # y on a log scale: a straight line
 ```
 
-`dotplot([io,] frames; t, every, closed, width, maxheight, animate, duration)`:
+`dotplot([io,] frames; t, every, closed, width, maxheight, xscale, yscale, animate, duration)`:
 - `frames[k]` is the vector of curves at the k-th time; a point is anything indexable as `p[1], p[2]`;
 - `t`, the times, colour the frames (and label them) when the output takes colour; `every` keeps every k-th frame;
 - curves are closed (last point joined to the first) unless `closed = false`;
-- `width` characters wide, narrower if needed to stay within `maxheight` lines;
+- `width` characters wide, narrower if needed to stay within `maxheight` lines, and in a terminal (the REPL's
+  included) within the window, ranges and legend too, with the prompt still in view;
+- `xscale`, `yscale` are `:linear` (the default) or `:log`, a log₁₀ scale with the ranges below in the data's
+  units (every point positive on a log axis); log-log keeps one scale, a decade as long in x as in y, and one log
+  axis fills `width` × `width ÷ 4` like `dotplot(y)`;
 - `animate = true` plays the frames in place first, over about `duration` seconds, when the output is a terminal
-  (Ctrl-C skips to the overlay), with the window shrunk where needed to fit the terminal; otherwise the output is
-  the same as without it.
+  (Ctrl-C skips to the overlay); otherwise the output is the same as without it.
 
-`dotplot([io,] x, y; closed, width, maxheight)` is the one curve through the points `(x[i], y[i])`, open unless
+`dotplot([io,] x, y; closed, width, maxheight, xscale, yscale)` is the one curve through the points `(x[i], y[i])`, open unless
 `closed = true`: `dotplot([[collect(zip(x, y))]]; closed = false)`. `dotplot([io,] y)` is `y` against its index, with x and y scaled separately to fill `width` × `width ÷ 4`
 characters. Otherwise x and y have one scale, so shapes keep their aspect ratio; `height = n` stretches any plot
 to fill `width` × `n` characters instead.

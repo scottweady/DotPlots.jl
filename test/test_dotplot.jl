@@ -78,8 +78,53 @@ end
     # one vector: against its index, in a width × width ÷ 4 box
     @test sprint(io -> dotplot(io, y)) == sprint(io -> dotplot(io, 1:length(y), y; height=15))
     out = sprint(io -> dotplot(io, (1:10) .^ 2; width=40))
-    @test length(split(out, '\n')) == 10 + 3                        # the frame, 10 lines and the ranges
+    @test countlines(IOBuffer(out)) == 10 + 3 && endswith(out, '\n')   # the frame, 10 lines and the ranges, a line each
     @test occursin("y ∈ [2.5, 3.5]", sprint(io -> dotplot(io, fill(3.0, 5))))   # a constant: ±0.5
+end
+
+@testset "log scale" begin
+    x = exp10.(range(0, 3, 50)); y = x .^ 2
+    plot(f) = split(sprint(f), '\n')[1:end-2]                 # the frame, without the ranges
+    # the dots of the logs on linear axes, the ranges in the data's units
+    @test plot(io -> dotplot(io, x, y; xscale=:log, yscale=:log)) == plot(io -> dotplot(io, log10.(x), log10.(y)))
+    out = sprint(io -> dotplot(io, x, y; xscale=:log, yscale=:log))
+    @test endswith(out, " x ∈ [0.575, 1740.0] (log),  y ∈ [0.565, 1.77e6] (log)\n")   # 4% of 6 decades each side
+    # one log axis: x and y scaled separately, width × width ÷ 4 unless a height is given
+    @test plot(io -> dotplot(io, log10.(x), y; yscale=:log, width=40)) == plot(io -> dotplot(io, log10.(x), log10.(y); width=40, height=10))
+    @test countlines(IOBuffer(sprint(io -> dotplot(io, x, y; xscale=:log, height=6)))) == 6 + 3
+    @test endswith(rstrip(sprint(io -> dotplot(io, 1:10, x[1:10]; yscale=:log))), "(log)")
+    @test_throws DomainError dotplot(IOBuffer(), [1.0, 0.0, 2.0], [1.0, 2.0, 3.0]; xscale=:log)
+    @test_throws DomainError dotplot(IOBuffer(), [-1.0, 2.0]; yscale=:log)
+    @test_throws ArgumentError dotplot(IOBuffer(), x, y; xscale=:log2)
+    @test sprint(io -> dotplot(io, x, y; xscale=:linear, yscale=:linear)) == sprint(io -> dotplot(io, x, y))
+    # the frames method, with times: as before apart from the scale
+    fl = [[[(exp10(p[1]), exp10(p[2])) for p in z] for z in curves] for curves in frames]
+    @test plot(io -> dotplot(io, fl; t, xscale=:log, yscale=:log)) == plot(io -> dotplot(io, frames; t))
+end
+
+@testset "fit" begin
+    # in a terminal, or with a :displaysize, all of it fits, with two lines to spare for the REPL's blank line and
+    # prompt: the frame, the ranges (on two lines when they are too wide) and the legend (wrapped)
+    visible(s) = replace(s, r"\e\[[0-9;]*m" => "")
+    function fits(rows, cols, f)
+        out = visible(sprint(f; context=(:displaysize => (rows, cols), :color => true)))
+        countlines(IOBuffer(out)) ≤ rows - 2 && all(textwidth(l) ≤ cols for l in split(out, '\n'))
+    end
+    many = [[ring(1.5, 0.75, s), ring(0.3, 0.3, 0.0)] for s in range(0, 1, 21)]; tm = range(0, 10, 21)
+    for (rows, cols) in ((24, 80), (24, 100), (15, 40), (40, 30), (60, 200))
+        @test fits(rows, cols, io -> dotplot(io, frames; t))
+        @test fits(rows, cols, io -> dotplot(io, many; t=tm))                   # a legend over several lines
+        @test fits(rows, cols, io -> dotplot(io, (1:10) .^ 2))                  # x and y scaled separately
+        @test fits(rows, cols, io -> dotplot(io, exp10.(1:5), 1:5; xscale=:log, width=200))
+        @test fits(rows, cols, io -> dotplot(io, frames; t, width=500, maxheight=500))
+    end
+    out = visible(sprint(io -> dotplot(io, many; t=tm); context=(:displaysize => (24, 40), :color => true)))
+    @test count(startswith(" t: "), split(out, '\n')) == 1 && count(startswith("    ■"), split(out, '\n')) ≥ 2
+    out = sprint(io -> dotplot(io, frames; t); context=:displaysize => (24, 30))
+    @test occursin("]\n y ∈", out)                                              # the ranges on two lines
+    # a plot that already fits is unchanged
+    @test sprint(io -> dotplot(io, frames; t, width=30); context=:displaysize => (60, 200)) ==
+          sprint(io -> dotplot(io, frames; t, width=30))
 end
 
 @testset "animation" begin

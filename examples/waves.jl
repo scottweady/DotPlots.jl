@@ -12,6 +12,5 @@ println("travelling wave sin(x − t)")
 dotplot([frame(sin.(x .- s)) for s in t]; t, closed=false)
 
 t = range(0, π, 5)
-println("\n\nstanding wave sin x cos t")
+println("\nstanding wave sin x cos t")
 dotplot([frame(sin.(x) .* cos(s)) for s in t]; t, closed=false)
-println()
