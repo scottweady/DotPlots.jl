@@ -2,8 +2,8 @@
 
 """
     dotplot([io,] frames; t = nothing, every = 1, closed = true, width = 60, maxheight = nothing,
-            height = nothing, xscale = :linear, yscale = :linear, animate = false, duration = 2)
-    dotplot([io,] x, y; closed = false, width = 60, maxheight = nothing, height = nothing, xscale, yscale)
+            height = nothing, xscale = :linear, yscale = :linear, marker = nothing, animate = false, duration = 2)
+    dotplot([io,] x, y; closed = false, width = 60, maxheight = nothing, height = nothing, xscale, yscale, marker)
     dotplot([io,] y; width = 60, height = width ÷ 4, …)
 
 Draw the curves of `frames` in the terminal with Unicode Braille characters, `width` characters wide (narrower if
@@ -24,6 +24,12 @@ With `xscale = :log` (`yscale = :log`), x (y) is on a log₁₀ scale, its range
 on a log axis must be positive. On log-log axes a decade is as long in x as in y; with one log axis, x and y are
 scaled separately, as with `height = width ÷ 4` unless `height` is given.
 
+With `marker`, each point is marked, over the curves and in its frame's colour, by a shape 5 dots across centred
+on the point's dot: `:circle` (`:o`), `:square` (`:s`), `:diamond` (`:d`), `:utriangle` (`:^`), `:dtriangle`
+(`:v`), the open ones cleared inside; `:xcross` (`:x`), `:cross` (`:+`), `:star` (`:*`), or `:dot`, filled. The
+window has room for them at the edges. A `Char` marker (`'#'`) is drawn instead of the Braille character holding
+the point, so to the nearest character, not dot. `nothing` or `:none` (the default) for none.
+
 With two vectors of numbers, the one curve through the points `(x[i], y[i])`, open unless `closed = true`; with
 one, `y` against its index, `(i, y[i])`, in a box of fixed shape, `width` × `width ÷ 4` characters.
 """
@@ -38,8 +44,9 @@ function dotplot(io::IO, x::AbstractVector{<:Real}, y::AbstractVector{<:Real}; c
 end
 function dotplot(io::IO, frames; t=nothing, every::Integer=1, closed::Bool=true, width::Integer=60,
                  maxheight=nothing, height=nothing, xscale::Symbol=:linear, yscale::Symbol=:linear,
-                 animate::Bool=false, duration::Real=2)
+                 marker=nothing, animate::Bool=false, duration::Real=2)
     xlog, ylog = islog(xscale, "xscale"), islog(yscale, "yscale")
+    marker = marker === nothing || marker === :none ? nothing : markershape(marker)
     ks = 1:every:length(frames)
     frames = logscale(frames[ks], xlog, ylog); t = t === nothing ? nothing : t[ks]
     closed && (frames = closecurves(frames))
@@ -57,18 +64,20 @@ function dotplot(io::IO, frames; t=nothing, every::Integer=1, closed::Bool=true,
         budget = max(1, rows - 2 - 1 - length(legend) - 2)
         maxheight = maxheight === nothing ? budget : min(maxheight, budget)
     end
-    b = box(frames; width, maxheight, height)
+    margin = markerradius(marker)
+    b = box(frames; width, maxheight, height, margin)
     ranges = rangelabels(b, xlog, ylog)
     if textwidth(ranges[1] * ", " * ranges[2]) > cols       # the ranges on two lines, the box a line lower
         fits && b.height + 2 + 2 + length(legend) + 2 > rows &&
-            (b = box(frames; width, maxheight=max(1, maxheight - 1), height); ranges = rangelabels(b, xlog, ylog))
+            (b = box(frames; width, maxheight=max(1, maxheight - 1), height, margin); ranges = rangelabels(b, xlog, ylog))
         ranges = (ranges[1], "\n" * ranges[2])
     else
         ranges = (ranges[1] * ",", " " * ranges[2])
     end
     animate && t !== nothing && length(frames) > 1 && isterminal(io) &&
-        play(io, frames, t; width=b.width, maxheight=b.height, height=height === nothing ? nothing : b.height, duration)
-    drawgrid(io, raster(frames, b)..., code)
+        play(io, frames, t; width=b.width, maxheight=b.height, height=height === nothing ? nothing : b.height,
+             marker, duration)
+    drawgrid(io, plotgrid(frames, b, marker)..., code)
     print(io, ranges...)
     for (l, fs) in enumerate(legend)                         # the times in their colours
         print(io, l == 1 ? "\n t: " : "\n    ")
@@ -77,6 +86,12 @@ function dotplot(io::IO, frames; t=nothing, every::Integer=1, closed::Bool=true,
         end
     end
     println(io)
+end
+
+"""The dots of the frames in the box `b`, with the marker (or `nothing`) at each point, and their frames."""
+function plotgrid(frames, b, marker)
+    grid, frame = raster(frames, b)
+    marker === nothing ? (grid, frame) : (markpoints!(grid, frame, frames, b, marker), frame)
 end
 
 """The x and y ranges of the box `b`, in the data's units."""
@@ -120,14 +135,15 @@ isterminal(io::Base.Terminals.TTYTerminal) = isterminal(io.out_stream)
 isterminal(io::IO) = io isa Base.TTY || (nameof(typeof(io)) === :LimitIO && isterminal(getfield(io, :io)))
 
 """
-    play(io, frames, t; width = 60, maxheight = nothing, height = nothing, duration = 2)
+    play(io, frames, t; width = 60, maxheight = nothing, height = nothing, marker = nothing, duration = 2)
 
 Play the (closed) frames one at a time in the window of the overlay, in place (cursor up after each), and leave
-the cursor at the top of the window with the rest of the screen cleared, for the overlay. Nothing when the window
-does not fit in the terminal.
+the cursor at the top of the window with the rest of the screen cleared, for the overlay; each point marked by
+`marker` (from `markershape`) unless it is `nothing`. Nothing when the window does not fit in the terminal.
 """
-function play(io::IO, frames, t; width::Integer=60, maxheight=nothing, height=nothing, duration::Real=2)
-    b = box(frames; width, maxheight, height); rows, cols = displaysize(io)
+function play(io::IO, frames, t; width::Integer=60, maxheight=nothing, height=nothing, marker=nothing,
+              duration::Real=2)
+    b = box(frames; width, maxheight, height, margin=markerradius(marker)); rows, cols = displaysize(io)
     (b.height + 4 ≤ rows && b.width + 2 ≤ cols) || return
     n = length(frames); ks = unique(round.(Int, range(1, n; length=min(n, max(2, ceil(Int, 30duration))))))
     pause = clamp(duration / length(ks), 1 / 30, 0.5)
@@ -138,7 +154,7 @@ function play(io::IO, frames, t; width::Integer=60, maxheight=nothing, height=no
         for (j, k) in enumerate(ks)
             buf = IOContext(IOBuffer(), io)                  # one write per frame, against flicker
             j > 1 && print(buf, up)
-            grid, frame = raster(frames[k:k], b)
+            grid, frame = plotgrid(frames[k:k], b, marker)
             drawgrid(buf, grid, frame, code === nothing ? nothing : _ -> code(k))
             print(buf, " t = ", round(t[k]; sigdigits=4), "  (", k, "/", n, ")\e[K")
             write(io, take!(buf.io)); flush(io)

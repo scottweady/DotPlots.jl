@@ -88,3 +88,19 @@ save("spirograph", io -> dotplot(io, [[[pen(2π * s) for s in range(ts[k], ts[k+
 x = range(0, 2π, 200)
 save("wave", io -> dotplot(io, [[collect(zip(x, sin.(x .- s)))] for s in range(0, π / 2, 5)];
                            t=range(0, π / 2, 5), closed=false))
+
+# a single curve from x and y vectors: a three-petal rose, at its true aspect ratio
+θ = range(0, 2π, 400)
+save("rose", io -> dotplot(io, cos.(3θ) .* cos.(θ), cos.(3θ) .* sin.(θ); maxheight=16))
+
+# the heat equation, u = e^(-t) sin x + e^(-9t) sin 3x / 3, sampled at nine points: markers, coloured by time
+xs = range(0, π, 9); th = [0, 0.1, 0.5]
+save("heat", io -> dotplot(io, [[collect(zip(xs, exp(-s) .* sin.(xs) .+ exp(-9s) .* sin.(3xs) ./ 3))] for s in th];
+                           t=th, closed=false, marker=:o, height=12))
+
+# log-log: a power law that turns over, x² / (1 + x³), slopes 2 and -1
+xl = exp10.(range(-2, 2, 200))
+save("loglog", io -> dotplot(io, xl, xl .^ 2 ./ (1 .+ xl .^ 3); xscale=:log, yscale=:log, width=40))
+
+# a log y axis, with square markers: n! against n
+save("factorial", io -> dotplot(io, 0:2:20, factorial.(0:2:20); yscale=:log, marker=:s, height=12))

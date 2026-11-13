@@ -13,8 +13,8 @@ tones); otherwise (Terminal.app, for one) the ramp is a mix of the two that read
 24-bit colour when COLORTERM says so, else the nearest xterm-256 colour.
 
 The pieces, for scripts that draw the same pictures elsewhere: `closecurves`, `box` (the plot window), `raster`
-(the dots), `drawgrid`, `timecode` with the stops `TIME_LIGHT`, `TIME_DARK`, `TIME_EITHER`, `isterminal` and `play`
-(the animation).
+(the dots), `markpoints!` with `markershape` (the markers), `drawgrid`, `timecode` with the stops `TIME_LIGHT`,
+`TIME_DARK`, `TIME_EITHER`, `isterminal` and `play` (the animation).
 """
 module DotPlots
 
